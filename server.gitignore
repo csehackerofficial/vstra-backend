@@ -1,0 +1,24 @@
+# --- Dependency Folders ---
+# इसे कभी भी GitHub पर नहीं भेजना चाहिए क्योंकि यह 'npm install' से दोबारा बन जाता है।
+node_modules/
+
+# --- Environment Variables / Secrets ---
+# इसमें आपके डेटाबेस के पासवर्ड्स और API Keys होती हैं।
+.env
+
+# --- Debug & Logs ---
+# फालतू की एरर लॉग फाइल्स
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# --- System Files ---
+# Mac और Windows की कुछ टेम्परेरी फाइल्स
+.DS_Store
+Thumbs.db
+
+# --- Build Folders ---
+dist/
+build/
