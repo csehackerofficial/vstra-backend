@@ -91,7 +91,7 @@ app.post("/api/add-product", async (req, res) => {
     }
 });
 
-// 🌟 3. प्रोडक्ट अपडेट/एडिट करने के लिए (PUT) - नया कोड 🌟
+// 3. प्रोडक्ट अपडेट/एडिट करने के लिए (PUT) 
 app.put("/api/products/:id", async (req, res) => {
     const { id } = req.params;
     const { name, category, description, stock } = req.body;
@@ -127,6 +127,45 @@ app.delete("/api/products/:id", async (req, res) => {
     }
 });
 
+// ==========================================
+// 🌟 --- BANNER MANAGEMENT ROUTES --- 🌟
+// ==========================================
+
+// 1. सारे बैनर दिखाने के लिए (GET)
+app.get("/api/banners", async (req, res) => {
+    try {
+        const [rows] = await db.query("SELECT * FROM banners ORDER BY id DESC");
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ message: "Banners load fail" });
+    }
+});
+
+// 2. नया बैनर ऐड करने के लिए (POST)
+app.post("/api/banners", async (req, res) => {
+    const { image_url, target_link } = req.body;
+    if (!image_url || !target_link) {
+        return res.status(400).json({ success: false, message: "Image and Link required!" });
+    }
+    try {
+        await db.query("INSERT INTO banners (image_url, target_link) VALUES (?, ?)", [image_url, target_link]);
+        res.json({ success: true, message: "Banner Active!" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Failed to add banner." });
+    }
+});
+
+// 3. बैनर डिलीट करने के लिए (DELETE)
+app.delete("/api/banners/:id", async (req, res) => {
+    try {
+        await db.query("DELETE FROM banners WHERE id = ?", [req.params.id]);
+        res.json({ success: true, message: "Banner Deleted." });
+    } catch (err) {
+        res.status(500).json({ success: false });
+    }
+});
+// ==========================================
+
 // --- PASSWORD RESET SYSTEM ---
 app.post("/api/forgot-password", async (req, res) => {
     const { email } = req.body;
@@ -154,4 +193,4 @@ app.post("/api/update-password", async (req, res) => {
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
-app.listen(PORT, () => console.log(`🚀 VSTRA SERVER ACTIVE ON PORT ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 VASTRA SERVER ACTIVE ON PORT ${PORT}`));
