@@ -41,7 +41,10 @@ app.post("/api/login", async (req, res) => {
         
         const isMatch = await bcrypt.compare(password, rows[0].password);
         if (isMatch) {
-            const role = (email === "kumaraayush7501@gmail.com") ? "admin" : "user";
+            // 🌟 एडमिन लिस्ट में रिशु की ईमेल आईडी जोड़ दी गई है
+            const adminEmails = ["kumaraayush7501@gmail.com", "rishujha676@gmail.com"];
+            const role = adminEmails.includes(email) ? "admin" : "user";
+            
             res.json({ success: true, user: { name: rows[0].name, email: rows[0].email, role } });
         } else { 
             res.status(401).json({ success: false, message: "Invalid Password." }); 
@@ -64,17 +67,13 @@ app.get("/api/products", async (req, res) => {
     }
 });
 
-// 2. नया प्रोडक्ट ऐड करने के लिए (POST) 👈 यह नया कोड है!
+// 2. नया प्रोडक्ट ऐड करने के लिए (POST)
 app.post("/api/add-product", async (req, res) => {
-    // फ्रंटएंड से डेटा निकालना (चाहे नाम कुछ भी हो, ये स्मार्टली कैच कर लेगा)
-    const name = req.body.name;
+    const { name, category, description, stock } = req.body;
     const image_url = req.body.image_url || req.body.imageLink;
     const purchase_link = req.body.purchase_link || req.body.purchaseLink;
     const mrp = req.body.mrp || req.body.originalPrice;
     const price = req.body.price || req.body.salePrice;
-    const category = req.body.category;
-    const description = req.body.description || "VSTRA Exclusive Product"; // डिफ़ॉल्ट डिस्क्रिप्शन
-    const stock = req.body.stock || 10; // डिफ़ॉल्ट स्टॉक
 
     if (!name || !price) {
         return res.status(400).json({ success: false, message: "Product Name and Price are required!" });
@@ -83,12 +82,23 @@ app.post("/api/add-product", async (req, res) => {
     try {
         await db.query(
             "INSERT INTO products (name, description, price, mrp, category, stock, image_url, purchase_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [name, description, price, mrp, category, stock, image_url, purchase_link]
+            [name, description || "VSTRA Exclusive", price, mrp, category, stock || 10, image_url, purchase_link]
         );
         res.json({ success: true, message: "Product Successfully Added to VSTRA Catalog!" });
     } catch (err) {
         console.error("Add Product Error:", err);
         res.status(500).json({ success: false, message: "Failed to add product to database." });
+    }
+});
+
+// 3. प्रोडक्ट डिलीट करने के लिए (DELETE) 👈 रिशु और आप अब क्लीनअप कर सकते हैं
+app.delete("/api/products/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.query("DELETE FROM products WHERE id = ?", [id]);
+        res.json({ success: true, message: "Product deleted successfully." });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Delete operation failed." });
     }
 });
 
