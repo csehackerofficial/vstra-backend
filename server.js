@@ -41,7 +41,7 @@ app.post("/api/login", async (req, res) => {
         
         const isMatch = await bcrypt.compare(password, rows[0].password);
         if (isMatch) {
-            // 🌟 एडमिन लिस्ट में रिशु की ईमेल आईडी जोड़ दी गई है
+            // 🌟 एडमिन लिस्ट
             const adminEmails = ["kumaraayush7501@gmail.com", "rishujha676@gmail.com"];
             const role = adminEmails.includes(email) ? "admin" : "user";
             
@@ -91,7 +91,32 @@ app.post("/api/add-product", async (req, res) => {
     }
 });
 
-// 3. प्रोडक्ट डिलीट करने के लिए (DELETE) 👈 रिशु और आप अब क्लीनअप कर सकते हैं
+// 🌟 3. प्रोडक्ट अपडेट/एडिट करने के लिए (PUT) - नया कोड 🌟
+app.put("/api/products/:id", async (req, res) => {
+    const { id } = req.params;
+    const { name, category, description, stock } = req.body;
+    const image_url = req.body.image_url || req.body.imageLink;
+    const purchase_link = req.body.purchase_link || req.body.purchaseLink;
+    const mrp = req.body.mrp || req.body.originalPrice;
+    const price = req.body.price || req.body.salePrice;
+
+    if (!name || !price) {
+        return res.status(400).json({ success: false, message: "Product Name and Price are required!" });
+    }
+
+    try {
+        await db.query(
+            "UPDATE products SET name = ?, description = ?, price = ?, mrp = ?, category = ?, stock = ?, image_url = ?, purchase_link = ? WHERE id = ?",
+            [name, description || "VSTRA Exclusive", price, mrp, category, stock || 10, image_url, purchase_link, id]
+        );
+        res.json({ success: true, message: "Product Successfully Updated!" });
+    } catch (err) {
+        console.error("Update Product Error:", err);
+        res.status(500).json({ success: false, message: "Failed to update product." });
+    }
+});
+
+// 4. प्रोडक्ट डिलीट करने के लिए (DELETE)
 app.delete("/api/products/:id", async (req, res) => {
     const { id } = req.params;
     try {
