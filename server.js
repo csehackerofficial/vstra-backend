@@ -6,7 +6,7 @@ const db = require("./db"); // आपका डेटाबेस कनेक�
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // JSON डेटा पढ़ने के लिए
+app.use(express.json()); // JSON डेटा पढ़ने के लिए
 
 const PORT = process.env.PORT || 5000;
 
@@ -52,12 +52,43 @@ app.post("/api/login", async (req, res) => {
 });
 
 // --- INVENTORY ROUTES ---
+
+// 1. प्रोडक्ट दिखाने के लिए (GET)
 app.get("/api/products", async (req, res) => {
     try {
         const [rows] = await db.query("SELECT * FROM products ORDER BY id DESC");
         res.json(rows);
     } catch (err) {
+        console.error("Products Load Error:", err);
         res.status(500).json({ message: "Products load fail" });
+    }
+});
+
+// 2. नया प्रोडक्ट ऐड करने के लिए (POST) 👈 यह नया कोड है!
+app.post("/api/add-product", async (req, res) => {
+    // फ्रंटएंड से डेटा निकालना (चाहे नाम कुछ भी हो, ये स्मार्टली कैच कर लेगा)
+    const name = req.body.name;
+    const image_url = req.body.image_url || req.body.imageLink;
+    const purchase_link = req.body.purchase_link || req.body.purchaseLink;
+    const mrp = req.body.mrp || req.body.originalPrice;
+    const price = req.body.price || req.body.salePrice;
+    const category = req.body.category;
+    const description = req.body.description || "VSTRA Exclusive Product"; // डिफ़ॉल्ट डिस्क्रिप्शन
+    const stock = req.body.stock || 10; // डिफ़ॉल्ट स्टॉक
+
+    if (!name || !price) {
+        return res.status(400).json({ success: false, message: "Product Name and Price are required!" });
+    }
+
+    try {
+        await db.query(
+            "INSERT INTO products (name, description, price, mrp, category, stock, image_url, purchase_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [name, description, price, mrp, category, stock, image_url, purchase_link]
+        );
+        res.json({ success: true, message: "Product Successfully Added to VSTRA Catalog!" });
+    } catch (err) {
+        console.error("Add Product Error:", err);
+        res.status(500).json({ success: false, message: "Failed to add product to database." });
     }
 });
 
