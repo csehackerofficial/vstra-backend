@@ -54,6 +54,22 @@ app.post("/api/login", async (req, res) => {
     }
 });
 
+// ==========================================
+// 🌟 --- USER MANAGEMENT ROUTES --- 🌟
+// ==========================================
+
+// एडमिन पैनल पर सारे यूज़र्स दिखाने के लिए (GET)
+app.get("/api/users", async (req, res) => {
+    try {
+        // पासवर्ड को छोड़कर बाकी सारी डिटेल्स भेज रहे हैं
+        const [rows] = await db.query("SELECT id, name, email, created_at FROM users ORDER BY id DESC");
+        res.json(rows);
+    } catch (err) {
+        console.error("Users Load Error:", err);
+        res.status(500).json({ message: "Failed to fetch users" });
+    }
+});
+
 // --- INVENTORY ROUTES ---
 
 // 1. प्रोडक्ट दिखाने के लिए (GET)
