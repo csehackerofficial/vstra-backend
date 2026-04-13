@@ -15,7 +15,6 @@ const PORT = process.env.PORT || 5000;
 // ==========================================
 
 app.post("/api/register", async (req, res) => {
-    // 🌟 FIX: Added phone_number
     const { name, email, password, phone_number } = req.body;
 
     if (!name || !email || !password || !phone_number) {
@@ -23,7 +22,6 @@ app.post("/api/register", async (req, res) => {
     }
 
     try {
-        // 🌟 FIX: Check both Email and Phone
         const [existing] = await db.query("SELECT email FROM users WHERE email = ? OR phone_number = ?", [email, phone_number]);
         if (existing.length > 0) {
             return res.status(400).json({ success: false, message: "Email or Phone is already registered! Please Login." });
@@ -31,7 +29,7 @@ app.post("/api/register", async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // 🌟 FIX: First users are admin, rest are normal users
+        // First users are admin, rest are normal users
         const role = (email === "kumaraayush7501@gmail.com" || email === "rishujha676@gmail.com") ? "admin" : "user";
 
         await db.query(
@@ -46,7 +44,6 @@ app.post("/api/register", async (req, res) => {
 });
 
 app.post("/api/login", async (req, res) => {
-    // 🌟 FIX: login_id can be Email OR Phone
     const { login_id, password } = req.body; 
     try {
         const [rows] = await db.query("SELECT * FROM users WHERE email = ? OR phone_number = ?", [login_id, login_id]);
@@ -54,7 +51,6 @@ app.post("/api/login", async (req, res) => {
         
         const isMatch = await bcrypt.compare(password, rows[0].password);
         if (isMatch) {
-            // 🌟 FIX: Sending role and phone_number back to frontend
             res.json({ 
                 success: true, 
                 user: { id: rows[0].id, name: rows[0].name, email: rows[0].email, phone: rows[0].phone_number, role: rows[0].role } 
@@ -71,10 +67,8 @@ app.post("/api/login", async (req, res) => {
 // 🌟 --- ADMIN USER MANAGEMENT ROUTES --- 🌟
 // ==========================================
 
-// एडमिन पैनल पर सारे यूज़र्स दिखाने के लिए (GET)
 app.get("/api/users", async (req, res) => {
     try {
-        // 🌟 FIX: Added phone_number & role
         const [rows] = await db.query("SELECT id, name, email, phone_number, role, created_at FROM users ORDER BY id DESC");
         res.json(rows);
     } catch (err) {
@@ -83,7 +77,6 @@ app.get("/api/users", async (req, res) => {
     }
 });
 
-// 🌟 NEW: किसी भी यूज़र को एडमिन बनाने या हटाने के लिए (PUT)
 app.put("/api/users/:id/role", async (req, res) => {
     const { id } = req.params;
     const { role } = req.body; 
@@ -99,7 +92,6 @@ app.put("/api/users/:id/role", async (req, res) => {
 // 🌟 --- INVENTORY ROUTES --- 🌟
 // ==========================================
 
-// 1. प्रोडक्ट दिखाने के लिए (GET)
 app.get("/api/products", async (req, res) => {
     try {
         const [rows] = await db.query("SELECT * FROM products ORDER BY id DESC");
@@ -110,7 +102,6 @@ app.get("/api/products", async (req, res) => {
     }
 });
 
-// 2. नया प्रोडक्ट ऐड करने के लिए (POST)
 app.post("/api/add-product", async (req, res) => {
     const { name, category, description, stock } = req.body;
     const image_url = req.body.image_url || req.body.imageLink;
@@ -134,7 +125,6 @@ app.post("/api/add-product", async (req, res) => {
     }
 });
 
-// 3. प्रोडक्ट अपडेट/एडिट करने के लिए (PUT) 
 app.put("/api/products/:id", async (req, res) => {
     const { id } = req.params;
     const { name, category, description, stock } = req.body;
@@ -159,7 +149,6 @@ app.put("/api/products/:id", async (req, res) => {
     }
 });
 
-// 4. प्रोडक्ट डिलीट करने के लिए (DELETE)
 app.delete("/api/products/:id", async (req, res) => {
     const { id } = req.params;
     try {
@@ -171,23 +160,35 @@ app.delete("/api/products/:id", async (req, res) => {
 });
 
 // ==========================================
-// 🌟 --- BANNER MANAGEMENT ROUTES --- 🌟
+// 🌟 --- BANNER MANAGEMENT ROUTES (UPDATED) --- 🌟
 // ==========================================
 
 app.get("/api/banners", async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT * FROM banners ORDER BY id DESC");
+        // 🌟 FIX: Sorted by priority_number so you can control order
+        const [rows] = await db.query("SELECT * FROM banners ORDER BY priority_number ASC, id DESC");
         res.json(rows);
     } catch (err) { res.status(500).json({ message: "Banners load fail" }); }
 });
 
 app.post("/api/banners", async (req, res) => {
-    const { image_url, target_link } = req.body;
-    if (!image_url || !target_link) return res.status(400).json({ success: false, message: "Image and Link required!" });
+    // 🌟 FIX: Added text and priority fields
+    const { image_url, target_link, text_content, text_position, priority_number } = req.body;
+    
+    if (!image_url || !target_link) {
+        return res.status(400).json({ success: false, message: "Image and Link required!" });
+    }
+    
     try {
-        await db.query("INSERT INTO banners (image_url, target_link) VALUES (?, ?)", [image_url, target_link]);
+        await db.query(
+            "INSERT INTO banners (image_url, target_link, text_content, text_position, priority_number) VALUES (?, ?, ?, ?, ?)", 
+            [image_url, target_link, text_content || null, text_position || 'center', priority_number || 0]
+        );
         res.json({ success: true, message: "Banner Active!" });
-    } catch (err) { res.status(500).json({ success: false, message: "Failed to add banner." }); }
+    } catch (err) { 
+        console.error("Banner Add Error:", err);
+        res.status(500).json({ success: false, message: "Failed to add banner." }); 
+    }
 });
 
 app.delete("/api/banners/:id", async (req, res) => {
@@ -249,7 +250,6 @@ app.get("/api/orders/:email", async (req, res) => {
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// 🌟 NEW: Admin Sales (Buy Now clicks tracking)
 app.get("/api/admin/sales", async (req, res) => {
     try {
         const [rows] = await db.query(`
@@ -266,7 +266,7 @@ app.get("/api/admin/sales", async (req, res) => {
 });
 
 // ==========================================
-// 🌟 --- PASSWORD RESET SYSTEM --- 🌟
+// 🌟 --- PASSWORD RESET SYSTEM (UPDATED) --- 🌟
 // ==========================================
 
 app.post("/api/forgot-password", async (req, res) => {
@@ -278,7 +278,8 @@ app.post("/api/forgot-password", async (req, res) => {
         const token = crypto.randomBytes(20).toString('hex');
         await db.query("UPDATE users SET reset_token = ? WHERE email = ?", [token, email]);
 
-        const resetLink = `https://vstra.netlify.app/reset.html?token=${token}`;
+        // 🌟 FIX: Updated link to point to login.html and correct domain
+        const resetLink = `https://vastrawide.netlify.app/login.html?token=${token}`;
         console.log(`\n[SECURITY] Reset Link for ${email}:\n${resetLink}\n`);
         
         res.json({ success: true, message: "Token generated. Check Render Logs for the link." });
