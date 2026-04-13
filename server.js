@@ -180,6 +180,64 @@ app.delete("/api/banners/:id", async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
+
+// ==========================================
+// 🌟 --- WISHLIST & ORDERS ROUTES --- 🌟
+// ==========================================
+
+// 1. Wishlist में ऐड करना (POST)
+app.post("/api/wishlist", async (req, res) => {
+    const { email, product_id } = req.body;
+    try {
+        const [existing] = await db.query("SELECT * FROM wishlist WHERE user_email = ? AND product_id = ?", [email, product_id]);
+        if (existing.length > 0) return res.json({ success: false, message: "Already in wishlist" });
+        
+        await db.query("INSERT INTO wishlist (user_email, product_id) VALUES (?, ?)", [email, product_id]);
+        res.json({ success: true, message: "Added to Wishlist" });
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// 2. यूज़र की Wishlist मंगाना (GET)
+app.get("/api/wishlist/:email", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT w.id as wishlist_id, p.* FROM wishlist w 
+            JOIN products p ON w.product_id = p.id 
+            WHERE w.user_email = ? ORDER BY w.id DESC
+        `, [req.params.email]);
+        res.json(rows);
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// 3. Wishlist से डिलीट करना (DELETE)
+app.delete("/api/wishlist/:id", async (req, res) => {
+    try {
+        await db.query("DELETE FROM wishlist WHERE id = ?", [req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// 4. Order (Buy Now Click) सेव करना (POST)
+app.post("/api/orders", async (req, res) => {
+    const { email, product_id } = req.body;
+    try {
+        await db.query("INSERT INTO orders (user_email, product_id) VALUES (?, ?)", [email, product_id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// 5. यूज़र के Orders मंगाना (GET)
+app.get("/api/orders/:email", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT o.id as order_id, o.order_date, p.* FROM orders o 
+            JOIN products p ON o.product_id = p.id 
+            WHERE o.user_email = ? ORDER BY o.id DESC
+        `, [req.params.email]);
+        res.json(rows);
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
 // ==========================================
 
 // --- PASSWORD RESET SYSTEM ---
