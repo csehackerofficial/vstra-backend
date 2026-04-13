@@ -29,8 +29,8 @@ app.post("/api/register", async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // First users are admin, rest are normal users
-        const role = (email === "kumaraayush7501@gmail.com" || email === "rishujha676@gmail.com") ? "admin" : "user";
+        // 🌟 FIX: ONLY kumaraayush7501@gmail.com is ADMIN by default
+        const role = (email === "kumaraayush7501@gmail.com") ? "admin" : "user";
 
         await db.query(
             "INSERT INTO users (name, email, password, phone_number, role) VALUES (?, ?, ?, ?, ?)", 
@@ -160,19 +160,17 @@ app.delete("/api/products/:id", async (req, res) => {
 });
 
 // ==========================================
-// 🌟 --- BANNER MANAGEMENT ROUTES (UPDATED) --- 🌟
+// 🌟 --- BANNER MANAGEMENT ROUTES --- 🌟
 // ==========================================
 
 app.get("/api/banners", async (req, res) => {
     try {
-        // 🌟 FIX: Sorted by priority_number so you can control order
         const [rows] = await db.query("SELECT * FROM banners ORDER BY priority_number ASC, id DESC");
         res.json(rows);
     } catch (err) { res.status(500).json({ message: "Banners load fail" }); }
 });
 
 app.post("/api/banners", async (req, res) => {
-    // 🌟 FIX: Added text and priority fields
     const { image_url, target_link, text_content, text_position, priority_number } = req.body;
     
     if (!image_url || !target_link) {
@@ -266,7 +264,7 @@ app.get("/api/admin/sales", async (req, res) => {
 });
 
 // ==========================================
-// 🌟 --- PASSWORD RESET SYSTEM (UPDATED) --- 🌟
+// 🌟 --- PASSWORD RESET SYSTEM --- 🌟
 // ==========================================
 
 app.post("/api/forgot-password", async (req, res) => {
@@ -278,7 +276,6 @@ app.post("/api/forgot-password", async (req, res) => {
         const token = crypto.randomBytes(20).toString('hex');
         await db.query("UPDATE users SET reset_token = ? WHERE email = ?", [token, email]);
 
-        // 🌟 FIX: Updated link to point to login.html and correct domain
         const resetLink = `https://vastrawide.netlify.app/login.html?token=${token}`;
         console.log(`\n[SECURITY] Reset Link for ${email}:\n${resetLink}\n`);
         
