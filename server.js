@@ -29,7 +29,7 @@ app.post("/api/register", async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // 🌟 FIX: ONLY kumaraayush7501@gmail.com is ADMIN by default
+        // 🌟 DEFAULT MASTER ADMIN
         const role = (email === "kumaraayush7501@gmail.com") ? "admin" : "user";
 
         await db.query(
@@ -89,7 +89,7 @@ app.put("/api/users/:id/role", async (req, res) => {
 });
 
 // ==========================================
-// 🌟 --- INVENTORY ROUTES --- 🌟
+// 🌟 --- INVENTORY ROUTES (Products) --- 🌟
 // ==========================================
 
 app.get("/api/products", async (req, res) => {
@@ -133,10 +133,6 @@ app.put("/api/products/:id", async (req, res) => {
     const mrp = req.body.mrp || req.body.originalPrice;
     const price = req.body.price || req.body.salePrice;
 
-    if (!name || !price) {
-        return res.status(400).json({ success: false, message: "Product Name and Price are required!" });
-    }
-
     try {
         await db.query(
             "UPDATE products SET name = ?, description = ?, price = ?, mrp = ?, category = ?, stock = ?, image_url = ?, purchase_link = ? WHERE id = ?",
@@ -172,21 +168,29 @@ app.get("/api/banners", async (req, res) => {
 
 app.post("/api/banners", async (req, res) => {
     const { image_url, target_link, text_content, text_position, priority_number } = req.body;
-    
     if (!image_url || !target_link) {
         return res.status(400).json({ success: false, message: "Image and Link required!" });
     }
-    
     try {
         await db.query(
             "INSERT INTO banners (image_url, target_link, text_content, text_position, priority_number) VALUES (?, ?, ?, ?, ?)", 
             [image_url, target_link, text_content || null, text_position || 'center', priority_number || 0]
         );
         res.json({ success: true, message: "Banner Active!" });
-    } catch (err) { 
-        console.error("Banner Add Error:", err);
-        res.status(500).json({ success: false, message: "Failed to add banner." }); 
-    }
+    } catch (err) { res.status(500).json({ success: false }); }
+});
+
+// 🌟 NEW: BANNER UPDATE ROUTE
+app.put("/api/banners/:id", async (req, res) => {
+    const { id } = req.params;
+    const { image_url, target_link, text_content, text_position, priority_number } = req.body;
+    try {
+        await db.query(
+            "UPDATE banners SET image_url = ?, target_link = ?, text_content = ?, text_position = ?, priority_number = ? WHERE id = ?",
+            [image_url, target_link, text_content, text_position, priority_number, id]
+        );
+        res.json({ success: true, message: "Banner Updated!" });
+    } catch (err) { res.status(500).json({ success: false }); }
 });
 
 app.delete("/api/banners/:id", async (req, res) => {
@@ -205,9 +209,8 @@ app.post("/api/wishlist", async (req, res) => {
     try {
         const [existing] = await db.query("SELECT * FROM wishlist WHERE user_email = ? AND product_id = ?", [email, product_id]);
         if (existing.length > 0) return res.json({ success: false, message: "Already in wishlist" });
-        
         await db.query("INSERT INTO wishlist (user_email, product_id) VALUES (?, ?)", [email, product_id]);
-        res.json({ success: true, message: "Added to Wishlist" });
+        res.json({ success: true });
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
@@ -258,9 +261,7 @@ app.get("/api/admin/sales", async (req, res) => {
             ORDER BY o.order_date DESC;
         `);
         res.json(rows);
-    } catch (err) { 
-        res.status(500).json({ success: false, message: "Sales load failed" }); 
-    }
+    } catch (err) { res.status(500).json({ success: false }); }
 });
 
 // ==========================================
@@ -272,14 +273,11 @@ app.post("/api/forgot-password", async (req, res) => {
     try {
         const [users] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
         if (users.length === 0) return res.json({ success: false, message: "Identity not found." });
-        
         const token = crypto.randomBytes(20).toString('hex');
         await db.query("UPDATE users SET reset_token = ? WHERE email = ?", [token, email]);
-
         const resetLink = `https://vastrawide.netlify.app/login.html?token=${token}`;
         console.log(`\n[SECURITY] Reset Link for ${email}:\n${resetLink}\n`);
-        
-        res.json({ success: true, message: "Token generated. Check Render Logs for the link." });
+        res.json({ success: true, message: "Token generated. Check Render Logs." });
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
@@ -289,7 +287,7 @@ app.post("/api/update-password", async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const [result] = await db.query("UPDATE users SET password = ?, reset_token = NULL WHERE reset_token = ?", [hashedPassword, token]);
         if (result.affectedRows === 0) return res.json({ success: false, message: "Token Expired." });
-        res.json({ success: true, message: "Credentials Updated. You can login now." });
+        res.json({ success: true, message: "Credentials Updated." });
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
