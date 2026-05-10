@@ -155,6 +155,77 @@ app.delete("/api/products/:id", async (req, res) => {
     }
 });
 
+
+// ==========================================
+// 🌟 --- LIVE AMAZON SEARCH (AFFILIATE API) --- 🌟
+// ==========================================
+
+app.get("/api/search-live", async (req, res) => {
+    const query = req.query.q;
+    
+    if (!query) {
+        return res.status(400).json({ success: false, message: "Search query is required!" });
+    }
+
+    // 🤑 तुम्हारा Amazon Affiliate Tag
+    const affiliateTag = "ngpians-21"; 
+    
+    // 🚨🚨🚨 यहाँ अपना असली API Key पेस्ट करना (RapidAPI डैशबोर्ड से कॉपी करके) 🚨🚨🚨
+    const RAPID_API_KEY = "YOUR_RAPID_API_KEY_HERE"; 
+
+    // Amazon India (in) से डेटा मंगाने के लिए API URL
+    const apiUrl = `https://rainforest3.p.rapidapi.com/search?marketplace=in&query=${encodeURIComponent(query)}`;
+
+    const options = {
+        method: 'GET',
+        headers: {
+            'x-rapidapi-key': RAPID_API_KEY,
+            'x-rapidapi-host': 'rainforest3.p.rapidapi.com',
+            'Content-Type': 'application/json'
+        }
+    };
+
+    try {
+        // Node.js (v18+) में fetch बाय-डिफ़ॉल्ट काम करता है
+        const response = await fetch(apiUrl, options);
+        const data = await response.json();
+
+        // चेक करो कि API ने रिज़ल्ट भेजा या नहीं
+        if (data && data.search_results) {
+            
+            // 🪄 Hacker Magic: API के डेटा को VASTRA के कार्ड डिज़ाइन के लायक बनाना
+            const liveProducts = data.search_results.map(item => {
+                const productAsin = item.asin;
+                
+                // 💸 डायनामिक एफिलिएट लिंक जेनरेटर
+                const affiliateLink = `https://www.amazon.in/dp/${productAsin}?tag=${affiliateTag}`;
+
+                return {
+                    id: productAsin, // ASIN को ही ID बना दिया ताकि कोई क्लैश न हो
+                    name: item.title,
+                    description: "Amazon Live Product",
+                    price: item.price ? item.price.value : 0, 
+                    mrp: item.price ? (item.price.value * 1.2).toFixed(0) : 0, // MRP दिखाने के लिए 20% बढ़ा दिया
+                    category: "Live Amazon Search",
+                    stock: 100, // हमेशा इन-स्टॉक दिखाएगा
+                    image_url: item.image,
+                    purchase_link: affiliateLink, // <--- यहाँ तुम्हारा कमीशन वाला लिंक सेट हो गया!
+                    is_live: true // फ्रंटएंड को बताने के लिए कि ये लोकल DB से नहीं, लाइव आया है
+                };
+            });
+
+            res.json({ success: true, products: liveProducts });
+        } else {
+            res.json({ success: false, message: "No products found on Amazon." });
+        }
+
+    } catch (error) {
+        console.error("Live Search Error:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch live Amazon data." });
+    }
+});
+
+
 // ==========================================
 // 🌟 --- BANNER MANAGEMENT ROUTES --- 🌟
 // ==========================================
