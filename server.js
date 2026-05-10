@@ -1,3 +1,4 @@
+require("dotenv").config(); // यह लाइन .env फाइल को लोड करेगी
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
@@ -160,10 +161,6 @@ app.delete("/api/products/:id", async (req, res) => {
 // 🌟 --- LIVE AMAZON SEARCH (AFFILIATE API) --- 🌟
 // ==========================================
 
-// ==========================================
-// 🌟 --- LIVE AMAZON SEARCH (AFFILIATE API) --- 🌟
-// ==========================================
-
 app.get("/api/search-live", async (req, res) => {
     const query = req.query.q;
     
@@ -175,7 +172,7 @@ app.get("/api/search-live", async (req, res) => {
     const affiliateTag = "ngpians-21"; 
     
     // 🚨 तुम्हारी असली RapidAPI Key (इमेज से निकाली गई)
-    const RAPID_API_KEY = "ac016ebcdfmsh938111d895fed16p1d5882jsn0f080106dfc7"; 
+    const RAPID_API_KEY = process.env.RAPID_API_KEY; 
 
     // Amazon India (in) से डेटा मंगाने के लिए API URL
     const apiUrl = `https://rainforest3.p.rapidapi.com/search?marketplace=in&query=${encodeURIComponent(query)}`;
